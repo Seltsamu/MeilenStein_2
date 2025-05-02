@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meilenstein_2", "Meilenstein_2\Meilenstein_2.csproj", "{2E4AF4B9-609B-465E-8937-4C3852ECDFF2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2E4AF4B9-609B-465E-8937-4C3852ECDFF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E4AF4B9-609B-465E-8937-4C3852ECDFF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E4AF4B9-609B-465E-8937-4C3852ECDFF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E4AF4B9-609B-465E-8937-4C3852ECDFF2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
