@@ -8,8 +8,8 @@ static class Program
     {
         Console.OutputEncoding = Encoding.UTF8;
 
-        Console.WriteLine("┌───┐");
-        Console.WriteLine("│   │");
-        Console.WriteLine("└───┘");
+        GameField gameField = new GameField(90, "test1", "test2");
+
+        gameField.PrintGameField();
     }
 }
