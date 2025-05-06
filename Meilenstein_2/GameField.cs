@@ -86,7 +86,7 @@ public class GameField
         Console.OutputEncoding = Encoding.UTF8;
 
         const int constLength = 20;
-        int height = _fieldCount / constLength + 1;
+        int height = (_fieldCount + constLength - 1) / constLength;
 
         FieldNode?[,] fieldNodes = new FieldNode?[height, constLength];
         FieldNode? currentFieldNode = _first!;
@@ -118,7 +118,32 @@ public class GameField
         {
             for (int j = 0; j < constLength; j++)
             {
-                Console.Write(fieldNodes[i, j] == null ? "     " : $"┌{fieldNodes[i, j]!.Number,3}┐");
+                if (fieldNodes[i, j] == null)
+                    Console.Write("     ");
+                else if (fieldNodes[i, j]!.Number.ToString().Length == 1)
+                {
+                    Console.Write("┌─");
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.Write(fieldNodes[i, j]!.Number);
+                    Console.ResetColor();
+                    Console.Write("─┐");
+                }
+                else if (fieldNodes[i, j]!.Number.ToString().Length == 2)
+                {
+                    Console.Write("┌─");
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.Write(fieldNodes[i, j]!.Number);
+                    Console.ResetColor();
+                    Console.Write("┐");
+                }
+                else
+                {
+                    Console.Write("┌");
+                    Console.ForegroundColor = ConsoleColor.Blue;
+                    Console.Write(fieldNodes[i, j]!.Number);
+                    Console.ResetColor();
+                    Console.Write("┐");
+                }
             }
 
             Console.WriteLine();
@@ -128,19 +153,55 @@ public class GameField
                     Console.Write("     ");
                 else
                 {
-                    string p = " ";
-                    if (fieldNodes[i, j] == _player1.Position)
+                    string p;
+                    if (fieldNodes[i, j] == _player1.Position && _player1.Position != _player2.Position)
+                    {
                         p = "1";
-                    else if (fieldNodes[i, j] == _player2.Position)
+                        Console.Write("│");
+                        Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        Console.Write(p);
+                        Console.ResetColor();
+                    }
+                    else if (fieldNodes[i, j] == _player2.Position && _player1.Position != _player2.Position)
+                    {
                         p = "2";
-                    if (fieldNodes[i, j]!.Ladder)
-                        Console.Write($"│{p}L │");
-                    else if (fieldNodes[i, j]!.Snake)
-                        Console.Write($"│{p}S │");
-                    else if (_player1.Position == _first && _player2.Position == _first && fieldNodes[i, j] == _first)
-                        Console.Write("│1 2│");
+                        Console.Write("│");
+                        Console.ForegroundColor = ConsoleColor.DarkMagenta;
+                        Console.Write(p);
+                        Console.ResetColor();
+                    }
                     else
-                        Console.Write($"│ {p} │");
+                    {
+                        Console.Write("│ ");
+                    }
+
+                    if (fieldNodes[i, j]!.Ladder)
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkGreen;
+                        Console.Write("L");
+                        Console.ResetColor();
+                        Console.Write(" │");
+                    }
+                    else if (fieldNodes[i, j]!.Snake)
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkRed;
+                        Console.Write("S");
+                        Console.ResetColor();
+                        Console.Write(" │");
+                    }
+                    else if (_player1.Position == _first && _player2.Position == _first && fieldNodes[i, j] == _first)
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkYellow;
+                        Console.Write("1");
+                        Console.ForegroundColor = ConsoleColor.DarkMagenta;
+                        Console.Write("2");
+                        Console.ResetColor();
+                        Console.Write("│");
+                    }
+                    else
+                    {
+                        Console.Write("  │");
+                    }
                 }
             }
 
@@ -177,7 +238,21 @@ public class GameField
             Console.Clear();
             PrintGameField();
 
-            Console.WriteLine($"{currentPlayer} is on the move. Press enter to roll the dice.");
+            Console.Write($"");
+            if (currentPlayer == _player1)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.Write($"{currentPlayer}");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.DarkMagenta;
+                Console.Write($"{currentPlayer}");
+            }
+
+            Console.ResetColor();
+            Console.WriteLine(" is on the move. Press enter to roll the dice.");
+
             keyInfo = Console.ReadKey();
             if (StopGame(keyInfo)) return;
 
@@ -198,16 +273,34 @@ public class GameField
         }
 
         Console.Clear();
+        Console.ForegroundColor = ConsoleColor.DarkGreen;
         Console.WriteLine("**************************");
-        Console.WriteLine($"{currentPlayer} wins with {currentPlayer.Throws} dice-rolls!");
+        Console.ResetColor();
+        if (currentPlayer == _player1)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.Write($"{currentPlayer}");
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.DarkMagenta;
+            Console.Write($"{currentPlayer}");
+        }
+
+        Console.ResetColor();
+        Console.WriteLine($" wins with {currentPlayer.Throws} dice-rolls!");
+        Console.ForegroundColor = ConsoleColor.DarkGreen;
         Console.WriteLine("**************************");
+        Console.ResetColor();
     }
 
     private static bool StopGame(ConsoleKeyInfo keyInfo)
     {
         if (keyInfo.Key == ConsoleKey.Q)
         {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine("\nstopping...");
+            Console.ResetColor();
             return true;
         }
 
