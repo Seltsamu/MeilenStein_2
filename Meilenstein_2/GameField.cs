@@ -6,8 +6,8 @@ public class GameField
 {
     internal class FieldNode(FieldNode? prev, FieldNode? next, int number, bool snake = false, bool ladder = false)
     {
-        public bool Snake = snake;
-        public bool Ladder = ladder;
+        public readonly bool Snake = snake;
+        public readonly bool Ladder = ladder;
         public FieldNode? Next = next;
         public FieldNode? Prev = prev;
         public int Number = number;
@@ -15,24 +15,22 @@ public class GameField
 
     internal class Player(string name, FieldNode? position)
     {
-        public string Name = name;
-        public int Throws = 0;
+        private string _name = name;
+        public int Throws;
         public FieldNode? Position = position;
-        private static int _nextNum = 1;
-        public int Num = _nextNum++;
-        public bool Winner = false;
+        public bool Winner;
 
         public override string ToString()
         {
-            return $"{Name}";
+            return $"{_name}";
         }
     }
 
     private FieldNode? _first;
     private FieldNode? _last;
     private int _fieldCount;
-    private Player _player1;
-    private Player _player2;
+    private readonly Player _player1;
+    private readonly Player _player2;
 
     public GameField(int length, string name1, string name2)
     {
@@ -120,10 +118,7 @@ public class GameField
         {
             for (int j = 0; j < constLength; j++)
             {
-                if (fieldNodes[i, j] == null)
-                    Console.Write("     ");
-                else
-                    Console.Write($"┌{fieldNodes[i, j]!.Number,3}┐");
+                Console.Write(fieldNodes[i, j] == null ? "     " : $"┌{fieldNodes[i, j]!.Number,3}┐");
             }
 
             Console.WriteLine();
@@ -152,10 +147,7 @@ public class GameField
             Console.WriteLine();
             for (int j = 0; j < constLength; j++)
             {
-                if (fieldNodes[i, j] == null)
-                    Console.Write("     ");
-                else
-                    Console.Write("└───┘");
+                Console.Write(fieldNodes[i, j] == null ? "     " : "└───┘");
             }
 
             Console.WriteLine();
@@ -168,7 +160,8 @@ public class GameField
         Console.WriteLine("Welcome to Snakes and Ladders.");
         Console.WriteLine("You roll the dice to determine how many nodes you can walk forward.");
         Console.WriteLine("If you roll a 1 the game field  will increase by 5 additional nodes at the end.");
-        Console.WriteLine("If you roll a 6 (without standing on the starting node) the game field will increase by 5 additional nodes behind you.");
+        Console.WriteLine(
+            "If you roll a 6 (without standing on the starting node) the game field will increase by 5 additional nodes behind you.");
         Console.WriteLine("If you land on a Snake, you have to go 3 nodes backwards.");
         Console.WriteLine("If you land on a ladder, you have to go 3 nodes forwards.");
         Console.WriteLine("If you land on a node with another player on it, you will be placed one node fewer.");
@@ -203,7 +196,7 @@ public class GameField
 
             MakeTurn(currentPlayer, turn);
         }
-        
+
         Console.Clear();
         Console.WriteLine("**************************");
         Console.WriteLine($"{currentPlayer} wins with {currentPlayer.Throws} dice-rolls!");
