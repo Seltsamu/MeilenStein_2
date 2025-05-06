@@ -24,7 +24,7 @@ public class GameField
 
         public override string ToString()
         {
-            return $"Player{Num}({Name})";
+            return $"{Name}";
         }
     }
 
@@ -40,7 +40,7 @@ public class GameField
         CreateFieldNodes();
         _player1 = new Player(name1, _first);
         _player2 = new Player(name2, _first);
-    }
+    } // constructor
 
     private void CreateFieldNodes()
     {
@@ -55,35 +55,35 @@ public class GameField
 
         for (int i = 0; i < _fieldCount - 2; i++) // create FieldNodes with a random chance for snake or ladder
         {
-            AddFieldNodes();
+            AddFieldNode();
         }
     }
 
-    private void AddFieldNodes()
+    private void AddFieldNode(FieldNode? mark = null)
     {
+        mark = mark ?? _last;
         FieldNode newFieldNode;
         Random random = new Random();
         int num = random.Next(5); // TODO create boundary's for how many snakes and letters can be in a row
 
         if (num == 1) // with snake
         {
-            newFieldNode = new FieldNode(_last!.Prev, _last, _last.Number - 1, true);
+            newFieldNode = new FieldNode(mark!.Prev, mark, mark.Prev!.Number + 1, true);
         }
         else if (num == 2) // with ladder
         {
-            newFieldNode = new FieldNode(_last!.Prev, _last, _last.Number - 1, false, true);
+            newFieldNode = new FieldNode(mark!.Prev, mark, mark.Prev!.Number + 1, false, true);
         }
         else // without anything special
         {
-            newFieldNode = new FieldNode(_last!.Prev, _last, _last.Number - 1);
+            newFieldNode = new FieldNode(mark!.Prev, mark, mark.Prev!.Number + 1);
         }
 
-        _last.Prev!.Next = newFieldNode;
-        _last.Prev = newFieldNode;
-        _last.Number += 1;
+        mark.Prev!.Next = newFieldNode;
+        mark.Prev = newFieldNode;
     }
 
-    public void PrintGameField() // TODO make it colorful
+    private void PrintGameField() // TODO make it colorful
     {
         Console.OutputEncoding = Encoding.UTF8;
 
@@ -118,39 +118,44 @@ public class GameField
 
         for (int i = 0; i < height; i++) // print the Game field with all symbols
         {
-            int length;
-            if (i == 0)
-                length = _fieldCount % constLength;
-            else
-                length = constLength;
-
-            for (int j = 0; j < length; j++)
+            for (int j = 0; j < constLength; j++)
             {
-                Console.Write($"┌{fieldNodes[i, j]!.Number,3}┐");
-            }
-
-            Console.WriteLine();
-            for (int j = 0; j < length; j++)
-            {
-                string p = " ";
-                if (fieldNodes[i, j] == _player1.Position)
-                    p = "1";
-                else if (fieldNodes[i, j] == _player2.Position)
-                    p = "2";
-                if (fieldNodes[i, j]!.Ladder)
-                    Console.Write($"│{p}L │");
-                else if (fieldNodes[i, j]!.Snake)
-                    Console.Write($"│{p}S │");
-                else if (_player1.Position == _first && _player2.Position == _first && fieldNodes[i, j] == _first)
-                    Console.Write($"│1 2│");
+                if (fieldNodes[i, j] == null)
+                    Console.Write("     ");
                 else
-                    Console.Write($"│ {p} │");
+                    Console.Write($"┌{fieldNodes[i, j]!.Number,3}┐");
             }
 
             Console.WriteLine();
-            for (int j = 0; j < length; j++)
+            for (int j = 0; j < constLength; j++)
             {
-                Console.Write("└───┘");
+                if (fieldNodes[i, j] == null)
+                    Console.Write("     ");
+                else
+                {
+                    string p = " ";
+                    if (fieldNodes[i, j] == _player1.Position)
+                        p = "1";
+                    else if (fieldNodes[i, j] == _player2.Position)
+                        p = "2";
+                    if (fieldNodes[i, j]!.Ladder)
+                        Console.Write($"│{p}L │");
+                    else if (fieldNodes[i, j]!.Snake)
+                        Console.Write($"│{p}S │");
+                    else if (_player1.Position == _first && _player2.Position == _first && fieldNodes[i, j] == _first)
+                        Console.Write("│1 2│");
+                    else
+                        Console.Write($"│ {p} │");
+                }
+            }
+
+            Console.WriteLine();
+            for (int j = 0; j < constLength; j++)
+            {
+                if (fieldNodes[i, j] == null)
+                    Console.Write("     ");
+                else
+                    Console.Write("└───┘");
             }
 
             Console.WriteLine();
@@ -159,6 +164,19 @@ public class GameField
 
     public void Start()
     {
+        Console.Clear();
+        Console.WriteLine("Welcome to Snakes and Ladders.");
+        Console.WriteLine("You roll the dice to determine how many nodes you can walk forward.");
+        Console.WriteLine("If you roll a 1 the game field  will increase by 5 additional nodes at the end.");
+        Console.WriteLine("If you roll a 6 (without standing on the starting node) the game field will increase by 5 additional nodes behind you.");
+        Console.WriteLine("If you land on a Snake, you have to go 3 nodes backwards.");
+        Console.WriteLine("If you land on a ladder, you have to go 3 nodes forwards.");
+        Console.WriteLine("If you land on a node with another player on it, you will be placed one node fewer.");
+        Console.WriteLine("If you want to quit midgame press Q.");
+        Console.WriteLine("Press Enter to start.");
+        ConsoleKeyInfo keyInfo = Console.ReadKey();
+        if (StopGame(keyInfo)) return;
+
         Player currentPlayer = _player2;
         while (!currentPlayer.Winner)
         {
@@ -166,17 +184,41 @@ public class GameField
             Console.Clear();
             PrintGameField();
 
-            Console.WriteLine($"{currentPlayer} is on the move. Press enter to roll the dice");
-            Console.ReadKey();
-            
+            Console.WriteLine($"{currentPlayer} is on the move. Press enter to roll the dice.");
+            keyInfo = Console.ReadKey();
+            if (StopGame(keyInfo)) return;
+
             int turn = RollDice();
-            Console.WriteLine($"You rolled a: {turn}. Press enter to make your turn");
-            Console.ReadKey();
-            
+            currentPlayer.Throws++;
+            if (turn == 1)
+                Console.WriteLine(
+                    $"You rolled: {turn}. The Game field will increase by 5 additional nodes. Press enter to make your turn.");
+            else if (turn == 6 && currentPlayer.Position != _first)
+                Console.WriteLine(
+                    $"You rolled: {turn}. The Game field will increase by 5 additional nodes behind you. Press enter to make your turn.");
+            else
+                Console.WriteLine($"You rolled: {turn}. Press enter to make your turn.");
+            keyInfo = Console.ReadKey();
+            if (StopGame(keyInfo)) return;
+
             MakeTurn(currentPlayer, turn);
-            
-            
         }
+        
+        Console.Clear();
+        Console.WriteLine("**************************");
+        Console.WriteLine($"{currentPlayer} wins with {currentPlayer.Throws} dice-rolls!");
+        Console.WriteLine("**************************");
+    }
+
+    private static bool StopGame(ConsoleKeyInfo keyInfo)
+    {
+        if (keyInfo.Key == ConsoleKey.Q)
+        {
+            Console.WriteLine("\nstopping...");
+            return true;
+        }
+
+        return false;
     }
 
     private void MakeTurn(Player player, int turn)
@@ -185,27 +227,56 @@ public class GameField
         {
             IncreaseGameField();
         }
-        
+        else if (turn == 6 && player.Position != _first)
+        {
+            IncreaseGameFieldBehindPlayer(player);
+        }
+
         MovePlayer(player, turn);
-        
+
         if (player.Position!.Ladder)
         {
-            Console.WriteLine("You land on a Ladder. Move an extra 3 fields forward");
+            Console.Clear();
+            PrintGameField();
+            Console.WriteLine("You land on a Ladder. Move an extra 3 fields forward.");
+            Console.ReadKey();
             MovePlayer(player, 3);
         }
         else if (player.Position!.Snake)
         {
-            Console.WriteLine("You land on a Snake. Move 3 fields back");
+            Console.Clear();
+            PrintGameField();
+            Console.WriteLine("You land on a Snake. Move 3 fields back.");
+            Console.ReadKey();
             for (int i = 0; i < 3; i++)
             {
                 player.Position = player.Position!.Prev;
                 if (player.Position == _first)
                     break;
             }
-        }  
-        
+        }
+
         if (_player1.Position == _player2.Position && _player1.Position != _first)
             player.Position = player.Position!.Prev;
+    }
+
+    private void IncreaseGameFieldBehindPlayer(Player player)
+    {
+        _fieldCount += 5;
+        const int nodeCount = 5;
+        for (int i = 0; i < nodeCount; i++)
+        {
+            AddFieldNode(player.Position);
+        }
+
+        FieldNode currentNode = player.Position!;
+        while (currentNode != _last)
+        {
+            currentNode.Number = currentNode.Prev!.Number + 1;
+            currentNode = currentNode.Next!;
+        }
+
+        _last.Number = _last.Prev!.Number + 1;
     }
 
     private void IncreaseGameField()
@@ -213,8 +284,10 @@ public class GameField
         _fieldCount += 5;
         for (int i = 0; i < 5; i++)
         {
-            AddFieldNodes(); // TODO weis nicht obs stimmt
+            AddFieldNode();
         }
+
+        _last!.Number = _fieldCount;
     }
 
     private void MovePlayer(Player player, int num)
@@ -224,7 +297,10 @@ public class GameField
             player.Position = player.Position!.Next;
 
             if (player.Position == _last)
+            {
                 player.Winner = true;
+                break;
+            }
         }
     }
 
