@@ -387,7 +387,10 @@ public class GameField
     private void HandleLadderAndSnakeEvents(Player player)
     {
         // repeat as long as the player lands on a special node for chaining events
-        while (true)
+        // these two bool vars prevent endlessly looping between a snake and a ladder
+        bool wasOnSnake = false;
+        bool wasOnLadder = false;
+        while (!wasOnSnake && !wasOnLadder)
         {
             if (player.Position!.Ladder) // player lands on a ladder
             {
@@ -396,6 +399,7 @@ public class GameField
                 Console.WriteLine("You land on a Ladder. Move an extra 3 fields forward.");
                 Console.ReadKey();
                 MovePlayer(player, 3);
+                wasOnLadder = true;
             }
             else if (player.Position!.Snake) // player lands on a snake
             {
@@ -404,6 +408,7 @@ public class GameField
                 Console.WriteLine("You land on a Snake. Move 3 fields back.");
                 Console.ReadKey();
                 MovePlayerBackward(player, 3);
+                wasOnSnake = true;
             }
             else // player lands on a normal node
                 return;
