@@ -17,12 +17,13 @@ public class GameField
         public int Number = number;
     }
 
-    internal class Player(string name, FieldNode? position)
+    internal class Player(string name , FieldNode? position) 
     {
         // Players of the game
         public int Throws; // number of dice rolls the player did
         public FieldNode? Position = position; // position of the player in the game field
         public bool Winner;
+        // the player name is already instantiated in the primary constructor
 
         public override string ToString()
         {
