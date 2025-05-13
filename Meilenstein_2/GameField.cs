@@ -10,7 +10,7 @@ public class GameField
     internal class FieldNode(FieldNode? prev, FieldNode? next, int number, bool snake = false, bool ladder = false)
     {
         // single FieldNode of the game field
-        public readonly bool Snake = snake;
+        public bool Snake = snake;
         public readonly bool Ladder = ladder;
         public FieldNode? Next = next;
         public FieldNode? Prev = prev;
@@ -39,6 +39,7 @@ public class GameField
     private readonly Player _player2;
     private int _ladderCount; // var for maximum number of ladders in a row
     private int _snakeCount; // var for maximum number of snakes in a row
+    private static readonly Random Random = new Random();
 
     private const int
         FieldIncrease = 5; // the number of nodes that the game field will get increased when rolling a 1 or a 6
@@ -60,7 +61,7 @@ public class GameField
 
     private void CreateFieldNodes()
     {
-        // Calls on the AddFieldNode() method for _fieldcount number of times to create all FieldNodes when the GameField gets constructed the first time
+        // Calls on the AddFieldNode() method for _field count number of times to create all FieldNodes when the GameField gets constructed the first time
         switch (_nodeCount)
         {
             // checks if the game field is too large or too small
@@ -78,6 +79,8 @@ public class GameField
         {
             AddFieldNode();
         }
+
+        DeleteInfiniteLoops();
     }
 
     private void AddFieldNode(FieldNode? mark = null)
@@ -85,8 +88,7 @@ public class GameField
         // Adds one FieldNode to the double-linked list
         mark ??= _last; // If the mark is null, it adds the new FieldNode before the last. If the mark isn't null, it adds the new FieldNode before the mark
         FieldNode newFieldNode;
-        Random random = new Random();
-        int num = random.Next(
+        int num = Random.Next(
             ProbabilityForSpecialField); // Determines the ratio between non-special and special fields. Its 50/50
 
         switch (num)
@@ -386,11 +388,8 @@ public class GameField
 
     private void HandleLadderAndSnakeEvents(Player player)
     {
-        // repeat as long as the player lands on a special node for chaining events
-        // these two bool vars prevent endlessly looping between a snake and a ladder
-        bool wasOnSnake = false;
-        bool wasOnLadder = false;
-        while (!wasOnSnake && !wasOnLadder)
+        // repeat as long as the player lands on a special node for chaining events,
+        while (true)
         {
             if (player.Position!.Ladder) // player lands on a ladder
             {
@@ -399,7 +398,6 @@ public class GameField
                 Console.WriteLine("You land on a Ladder. Move an extra 3 fields forward.");
                 Console.ReadKey();
                 MovePlayer(player, 3);
-                wasOnLadder = true;
             }
             else if (player.Position!.Snake) // player lands on a snake
             {
@@ -408,7 +406,6 @@ public class GameField
                 Console.WriteLine("You land on a Snake. Move 3 fields back.");
                 Console.ReadKey();
                 MovePlayerBackward(player, 3);
-                wasOnSnake = true;
             }
             else // player lands on a normal node
                 return;
@@ -443,6 +440,8 @@ public class GameField
         }
 
         _last.Number = _last.Prev!.Number + 1; // corrects the number of the last node
+
+        DeleteInfiniteLoops();
     }
 
     private void IncreaseGameField()
@@ -454,7 +453,9 @@ public class GameField
             AddFieldNode();
         }
 
-        _last!.Number = _nodeCount; // fixes the number of the last node
+        _last!.Number = _nodeCount; // corrects the number of the last node
+
+        DeleteInfiniteLoops();
     }
 
     private void MovePlayer(Player player, int num)
@@ -486,7 +487,28 @@ public class GameField
     private static int RollDice()
     {
         // rolls the dice for a random number between 1 and 6
-        Random random = new Random();
-        return random.Next(1, 7);
+        return Random.Next(1, 7);
+    }
+
+    private void DeleteInfiniteLoops()
+    {
+        // Deletes infinite loops between a ladder and a snake
+        FieldNode currentNode = _first ?? throw new ArgumentException("_first is null, something went wrong");
+
+        while (currentNode != _last!.Prev!.Prev!.Prev) // iterates through every FieldNode until the 4th last
+        {
+            currentNode = currentNode.Next!;
+
+            if (currentNode.Ladder)
+            {
+                FieldNode nextFieldNode = currentNode;
+
+                for (int i = 0; i < 3; i++) // moves 3 FieldNodes ahead
+                    nextFieldNode = nextFieldNode.Next ??
+                                    throw new ArgumentException("Calculation with DeleteLoops went wrong");
+
+                nextFieldNode.Snake = false; // deletes the snake on this FieldNode 
+            }
+        }
     }
 }
