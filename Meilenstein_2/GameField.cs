@@ -20,7 +20,6 @@ public class GameField
     internal class Player(string name, FieldNode? position)
     {
         // Players of the game
-        private string _name = name;
         public int Throws; // number of dice rolls the player did
         public FieldNode? Position = position; // position of the player in the game field
         public bool Winner;
@@ -28,7 +27,7 @@ public class GameField
         public override string ToString()
         {
             // only writes the name of the player
-            return $"{_name}";
+            return $"{name}";
         }
     }
 
