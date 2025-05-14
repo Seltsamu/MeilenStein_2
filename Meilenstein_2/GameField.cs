@@ -4,20 +4,20 @@ using System.Text;
 
 public class GameField
 {
-    // class to create a game field for "Snakes and Ladders" as well as to players and the complete set of methods to play the game
-    // construct the GameField first
+    // class to create a game field for "Snakes and Ladders" as well as two players and the complete set of methods to play the game
+    // construct the GameField first => new GameField(<number of nodes in the game field>, <player1 name>, <player2 name>);
     // after that use GameField.start() to start the game
     internal class FieldNode(FieldNode? prev, FieldNode? next, int number, bool snake = false, bool ladder = false)
     {
         // single FieldNode of the game field
         public bool Snake = snake;
-        public readonly bool Ladder = ladder;
+        public bool Ladder = ladder;
         public FieldNode? Next = next;
         public FieldNode? Prev = prev;
         public int Number = number;
     }
 
-    internal class Player(string name , FieldNode? position) 
+    internal class Player(string name, FieldNode? position)
     {
         // Players of the game
         public int Throws; // number of dice rolls the player did
@@ -32,6 +32,8 @@ public class GameField
         }
     }
 
+    #region vars
+
     private FieldNode? _first; // first node of the double-linked list
     private FieldNode? _last; // last node of the double-linked list
     private int _nodeCount; // number of nodes the game field has
@@ -39,16 +41,15 @@ public class GameField
     private readonly Player _player2;
     private int _ladderCount; // var for maximum number of ladders in a row
     private int _snakeCount; // var for maximum number of snakes in a row
-    private static readonly Random Random = new Random();
+    private static readonly Random Random = new();
 
-    private const int
-        FieldIncrease = 5; // the number of nodes that the game field will get increased when rolling a 1 or a 6
+    private const int FieldIncrease = 3; // the number of nodes that the game field will increase when rolling a 1 or 6
 
     private const int MaxRowLength = 20; // the maximum length for a row printed on the Console
 
-    private const int
-        ProbabilityForSpecialField =
-            5; // Probability to get a Snake or a Ladder on a field. The higher the number, the less probable. 5 = 50/50
+    private const int ProbabilityForSpecialField = 5; // Probability to get a Snake or a Ladder on a field. The higher the number, the less probable. 5 = 50/50
+
+    #endregion
 
     public GameField(int length, string name1, string name2)
     {
@@ -59,28 +60,90 @@ public class GameField
         _player2 = new Player(name2, _first);
     }
 
-    private void CreateFieldNodes()
+    public void Start()
     {
-        // Calls on the AddFieldNode() method for _field count number of times to create all FieldNodes when the GameField gets constructed the first time
-        switch (_nodeCount)
+        // starts the game
+        // prints instructions and rules first
+        Console.Clear();
+        Console.WriteLine("Welcome to Snakes and Ladders.");
+        Console.WriteLine("You roll the dice to determine how many nodes you can walk forward.");
+        Console.WriteLine("If you roll a 1 the game field  will increase by 5 additional nodes at the end.");
+        Console.WriteLine("If you roll a 6 (without standing on the starting node) the game field will increase by 5 additional nodes behind you.");
+        Console.WriteLine("If you land on a Snake, you have to go 3 nodes backwards.");
+        Console.WriteLine("If you land on a ladder, you have to go 3 nodes forwards.");
+        Console.WriteLine("If you land on a node with another player on it, you will be placed one node fewer.");
+        Console.WriteLine("If you want to quit midgame press Q.");
+        Console.WriteLine("Press Enter to start.");
+        ConsoleKeyInfo keyInfo = Console.ReadKey();
+        if (StopGame(keyInfo)) return;
+
+        Player currentPlayer = _player2;
+        while (!currentPlayer.Winner) // loops until a player wins or "Q" is pressed
         {
-            // checks if the game field is too large or too small
-            case <= 6: // too small
-                throw new ArgumentException("Game field must be larger than 6 fields!");
-            case > 200: // too large
-                throw new ArgumentException("GameField must be smaller than 201 fields!");
+            currentPlayer = currentPlayer == _player1 ? _player2 : _player1; // switch between player1 and player2
+            Console.Clear();
+            PrintGameField();
+
+            // change colors for player 1 and 2
+            Console.Write("");
+            Console.ForegroundColor = currentPlayer == _player1 ? ConsoleColor.DarkYellow : ConsoleColor.DarkMagenta;
+
+            Console.Write($"{currentPlayer}");
+
+            Console.ResetColor();
+            Console.WriteLine(" is on the move. Press enter to roll the dice.");
+
+            keyInfo = Console.ReadKey();
+            if (StopGame(keyInfo)) return;
+
+            // dice roll and checks for 1 and 6
+            int turn = RollDice();
+            currentPlayer.Throws++;
+            switch (turn)
+            {
+                // rolled a 1
+                case 1:
+                    Console.WriteLine($"You rolled: {turn}. The Game field will increase by {FieldIncrease} additional nodes. Press enter to make your turn.");
+                    break;
+                // rolled a 6 and is not on the first node
+                case 6 when currentPlayer.Position != _first:
+                    Console.WriteLine($"You rolled: {turn}. The Game field will increase by {FieldIncrease} additional nodes behind you. Press enter to make your turn.");
+                    break;
+                // rolled anything besides 1 and 6
+                default:
+                    Console.WriteLine($"You rolled: {turn}. Press enter to make your turn.");
+                    break;
+            }
+
+            keyInfo = Console.ReadKey();
+            if (StopGame(keyInfo)) return;
+
+            MakeTurn(currentPlayer, turn); // game logic
         }
 
-        _first = new FieldNode(null, null, 1); // creates the starting FieldNode
-        _last = new FieldNode(_first, null, _nodeCount); // creates the finishing FieldNode
-        _first.Next = _last;
-
-        for (int i = 0; i < _nodeCount - 2; i++) // creates _fieldCount FieldNodes 
+        // print winner screen
+        Console.Clear();
+        Console.ForegroundColor = ConsoleColor.DarkGreen;
+        Console.WriteLine("**************************");
+        Console.ResetColor();
+        // switch colors for player 1 and 2
+        if (currentPlayer == _player1)
         {
-            AddFieldNode();
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.Write($"{currentPlayer}");
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.DarkMagenta;
+            Console.Write($"{currentPlayer}");
         }
 
-        DeleteInfiniteLoops();
+        Console.ResetColor();
+        Console.WriteLine($" wins with {currentPlayer.Throws} dice-rolls!");
+        Console.ForegroundColor = ConsoleColor.DarkGreen;
+        Console.WriteLine("**************************");
+        Console.ResetColor();
+        Console.ReadKey();
     }
 
     private void AddFieldNode(FieldNode? mark = null)
@@ -88,8 +151,8 @@ public class GameField
         // Adds one FieldNode to the double-linked list
         mark ??= _last; // If the mark is null, it adds the new FieldNode before the last. If the mark isn't null, it adds the new FieldNode before the mark
         FieldNode newFieldNode;
-        int num = Random.Next(
-            ProbabilityForSpecialField); // Determines the ratio between non-special and special fields. Its 50/50
+        int num = Random.Next(ProbabilityForSpecialField);
+        // Determines the ratio between non-special and special fields. 
 
         switch (num)
         {
@@ -117,6 +180,62 @@ public class GameField
         mark.Prev = newFieldNode;
     }
 
+    private void CreateFieldNodes()
+    {
+        // Calls on the AddFieldNode() method for _field count number of times to create all FieldNodes when the GameField gets constructed the first time
+        switch (_nodeCount)
+        {
+            // checks if the game field is too large or too small
+            case <= 6: // too small
+                throw new ArgumentException("Game field must be larger than 6 fields!");
+            case > 200: // too large
+                throw new ArgumentException("GameField must be smaller than 201 fields!");
+        }
+
+        _first = new FieldNode(null, null, 1); // creates the starting FieldNode
+        _last = new FieldNode(_first, null, _nodeCount); // creates the finishing FieldNode
+        _first.Next = _last;
+
+        for (int i = 0; i < _nodeCount - 2; i++) // creates _fieldCount FieldNodes 
+        {
+            AddFieldNode();
+        }
+
+        DeleteInfiniteLoops();
+    }
+
+    private void DeleteInfiniteLoops()
+    {
+        // Deletes infinite loops between a ladder and a snake and a ladder and the last node
+        FieldNode currentNode = _first ?? throw new ArgumentException("_first is null, something went wrong");
+
+        // deletes ladder-snake loops
+        while (currentNode != _last!.Prev!.Prev!.Prev) // iterates through every FieldNode until the 4th last
+        {
+            currentNode = currentNode.Next!;
+
+            if (currentNode.Ladder)
+            {
+                FieldNode nextFieldNode = currentNode;
+
+                for (int i = 0; i < 3; i++) // moves 3 FieldNodes ahead
+                    nextFieldNode = nextFieldNode.Next ??
+                                    throw new ArgumentException("Calculation with DeleteLoops went wrong");
+
+                nextFieldNode.Snake = false; // deletes the snake on this FieldNode 
+            }
+        }
+
+        // deletes ladder-last node loops
+        while (currentNode != _last.Prev)
+        {
+            currentNode = currentNode.Next!;
+
+            if (currentNode.Ladder)
+                currentNode.Ladder = false;
+        }
+    }
+
     private void PrintGameField()
     {
         // prints the game field
@@ -124,11 +243,9 @@ public class GameField
 
         int height = (_nodeCount + MaxRowLength - 1) / MaxRowLength; // calculates the height of the game field
 
-        FieldNode?[,]
-            fieldNodes = new FieldNode?[height, MaxRowLength]; // creates an array to sort the FieldNodes easier
+        FieldNode?[,] fieldNodes = new FieldNode?[height, MaxRowLength]; // creates an array to sort the FieldNodes easier
         FieldNode? currentFieldNode = _first!;
-        bool
-            startLeft = true; // bool the switch between filling the array from the right or left to get the snakelike game field pattern
+        bool startLeft = true; // bool the switch between filling the array from the right or left to get the snakelike game field pattern
 
         for (int i = fieldNodes.GetLength(0) - 1; i >= 0; i--) // fill fieldNodes array in the correct order
         {
@@ -161,31 +278,31 @@ public class GameField
             {
                 if (fieldNodes[i, j] == null) // prints spaces if there is no FieldNode
                     Console.Write("     ");
-                // adjusts the bars to match with the length of the number
-                else if (fieldNodes[i, j]!.Number.ToString().Length == 1)
-                {
-                    Console.Write("┌─");
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.Write(fieldNodes[i, j]!.Number);
-                    Console.ResetColor();
-                    Console.Write("─┐");
-                }
-                else if (fieldNodes[i, j]!.Number.ToString().Length == 2)
-                {
-                    Console.Write("┌─");
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.Write(fieldNodes[i, j]!.Number);
-                    Console.ResetColor();
-                    Console.Write("┐");
-                }
                 else
-                {
-                    Console.Write("┌");
-                    Console.ForegroundColor = ConsoleColor.Blue;
-                    Console.Write(fieldNodes[i, j]!.Number);
-                    Console.ResetColor();
-                    Console.Write("┐");
-                }
+                    switch (fieldNodes[i, j]!.Number.ToString().Length) // adjusts the bars to match with the length of the number
+                    {
+                        case 1:
+                            Console.Write("┌─");
+                            Console.ForegroundColor = ConsoleColor.Blue;
+                            Console.Write(fieldNodes[i, j]!.Number);
+                            Console.ResetColor();
+                            Console.Write("─┐");
+                            break;
+                        case 2:
+                            Console.Write("┌─");
+                            Console.ForegroundColor = ConsoleColor.Blue;
+                            Console.Write(fieldNodes[i, j]!.Number);
+                            Console.ResetColor();
+                            Console.Write("┐");
+                            break;
+                        default:
+                            Console.Write("┌");
+                            Console.ForegroundColor = ConsoleColor.Blue;
+                            Console.Write(fieldNodes[i, j]!.Number);
+                            Console.ResetColor();
+                            Console.Write("┐");
+                            break;
+                    }
             }
 
             Console.WriteLine();
@@ -262,106 +379,6 @@ public class GameField
         }
     }
 
-    public void Start()
-    {
-        // starts the game
-        // prints instructions and rules first
-        Console.Clear();
-        Console.WriteLine("Welcome to Snakes and Ladders.");
-        Console.WriteLine("You roll the dice to determine how many nodes you can walk forward.");
-        Console.WriteLine("If you roll a 1 the game field  will increase by 5 additional nodes at the end.");
-        Console.WriteLine(
-            "If you roll a 6 (without standing on the starting node) the game field will increase by 5 additional nodes behind you.");
-        Console.WriteLine("If you land on a Snake, you have to go 3 nodes backwards.");
-        Console.WriteLine("If you land on a ladder, you have to go 3 nodes forwards.");
-        Console.WriteLine("If you land on a node with another player on it, you will be placed one node fewer.");
-        Console.WriteLine("If you want to quit midgame press Q.");
-        Console.WriteLine("Press Enter to start.");
-        ConsoleKeyInfo keyInfo = Console.ReadKey();
-        if (StopGame(keyInfo)) return;
-
-        Player currentPlayer = _player2;
-        while (!currentPlayer.Winner) // loops until a player wins or "Q" is pressed
-        {
-            currentPlayer = currentPlayer == _player1 ? _player2 : _player1; // switch between player1 and player2
-            Console.Clear();
-            PrintGameField();
-
-            // change colors for player 1 and 2
-            Console.Write($"");
-            if (currentPlayer == _player1)
-            {
-                Console.ForegroundColor = ConsoleColor.DarkYellow;
-                Console.Write($"{currentPlayer}");
-            }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.DarkMagenta;
-                Console.Write($"{currentPlayer}");
-            }
-
-            Console.ResetColor();
-            Console.WriteLine(" is on the move. Press enter to roll the dice.");
-
-            keyInfo = Console.ReadKey();
-            if (StopGame(keyInfo)) return;
-
-            // dice roll and checks for 1 and 6
-            int turn = RollDice();
-            currentPlayer.Throws++;
-            if (turn == 1) // rolled a 1
-                Console.WriteLine(
-                    $"You rolled: {turn}. The Game field will increase by 5 additional nodes. Press enter to make your turn.");
-            else if (turn == 6 && currentPlayer.Position != _first) // rolled a 6 and is not on the first node
-                Console.WriteLine(
-                    $"You rolled: {turn}. The Game field will increase by 5 additional nodes behind you. Press enter to make your turn.");
-            else // rolled anything besides 1 and 6
-                Console.WriteLine($"You rolled: {turn}. Press enter to make your turn.");
-            keyInfo = Console.ReadKey();
-            if (StopGame(keyInfo)) return;
-
-            MakeTurn(currentPlayer, turn); // game logic
-        }
-
-        // print winner screen
-        Console.Clear();
-        Console.ForegroundColor = ConsoleColor.DarkGreen;
-        Console.WriteLine("**************************");
-        Console.ResetColor();
-        // switch colors for player 1 and 2
-        if (currentPlayer == _player1)
-        {
-            Console.ForegroundColor = ConsoleColor.DarkYellow;
-            Console.Write($"{currentPlayer}");
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.DarkMagenta;
-            Console.Write($"{currentPlayer}");
-        }
-
-        Console.ResetColor();
-        Console.WriteLine($" wins with {currentPlayer.Throws} dice-rolls!");
-        Console.ForegroundColor = ConsoleColor.DarkGreen;
-        Console.WriteLine("**************************");
-        Console.ResetColor();
-        Console.ReadKey();
-    }
-
-    private static bool StopGame(ConsoleKeyInfo keyInfo)
-    {
-        // stops the game if the player entered "Q" 
-        if (keyInfo.Key == ConsoleKey.Q)
-        {
-            Console.ForegroundColor = ConsoleColor.DarkRed;
-            Console.WriteLine("\nstopping...");
-            Console.ResetColor();
-            return true;
-        }
-
-        return false;
-    }
-
     private void MakeTurn(Player player, int turn)
     {
         // is the actual game logic 
@@ -384,6 +401,78 @@ public class GameField
         // set a player one node back if he lands on a node with another player
         if (_player1.Position == _player2.Position && _player1.Position != _first)
             player.Position = player.Position!.Prev;
+    }
+
+    private void MovePlayer(Player player, int num)
+    {
+        // Moves the player by num nodes
+        for (int i = 0; i < num; i++)
+        {
+            player.Position = player.Position!.Next;
+
+            if (player.Position == _last) // checks if the player lands on the last node
+            {
+                // checks if the dice roll was perfect
+                if (i == num - 1) // roll was perfect
+                {
+                    player.Winner = true;
+                    return;
+                }
+
+                // roll was not perfect. player is set to the node he started, events can't be triggered on that node
+                Console.WriteLine(
+                    "You have to land on the last node with a perfect dice roll! You stay where you are.");
+                Console.ReadKey();
+                MovePlayerBackward(player, i + 1);
+                return;
+            }
+        }
+    }
+
+    private void MovePlayerBackward(Player player, int num)
+    {
+        // Moves the player backwards for num nodes, or until he lands on the first node
+        for (int i = 0; i < num; i++)
+        {
+            player.Position = player.Position!.Prev;
+            if (player.Position == _first)
+                return;
+        }
+    }
+
+    private void IncreaseGameField()
+    {
+        // increases the Game field by the constant number FieldIncrease
+        _nodeCount += FieldIncrease;
+        for (int i = 0; i < FieldIncrease; i++)
+        {
+            AddFieldNode();
+        }
+
+        _last!.Number = _nodeCount; // corrects the number of the last node
+
+        DeleteInfiniteLoops();
+    }
+
+    private void IncreaseGameFieldBehindPlayer(Player player)
+    {
+        // increases the game field by the constant number FieldIncrease behind the player
+        _nodeCount += FieldIncrease;
+        for (int i = 0; i < FieldIncrease; i++) // adds the nodes
+        {
+            AddFieldNode(player.Position);
+        }
+
+        FieldNode currentNode = player.Position!;
+        while (currentNode != _last) // corrects the numbers of the following nodes until the last one
+        {
+            currentNode.Number = currentNode.Prev!.Number + 1;
+            currentNode = currentNode.Next!;
+        }
+
+        _last.Number = _last.Prev!.Number + 1; // corrects the number of the last node
+
+        DeleteInfiniteLoops();
     }
 
     private void HandleLadderAndSnakeEvents(Player player)
@@ -412,103 +501,22 @@ public class GameField
         }
     }
 
-    private void MovePlayerBackward(Player player, int num)
-    {
-        // Moves the player backwards for num nodes, or until he lands on the first node
-        for (int i = 0; i < num; i++)
-        {
-            player.Position = player.Position!.Prev;
-            if (player.Position == _first)
-                return;
-        }
-    }
-
-    private void IncreaseGameFieldBehindPlayer(Player player)
-    {
-        // increases the game field by the constant number FieldIncrease behind the player
-        _nodeCount += FieldIncrease;
-        for (int i = 0; i < FieldIncrease; i++) // adds the nodes
-        {
-            AddFieldNode(player.Position);
-        }
-
-        FieldNode currentNode = player.Position!;
-        while (currentNode != _last) // corrects the numbers of the following nodes until the last one
-        {
-            currentNode.Number = currentNode.Prev!.Number + 1;
-            currentNode = currentNode.Next!;
-        }
-
-        _last.Number = _last.Prev!.Number + 1; // corrects the number of the last node
-
-        DeleteInfiniteLoops();
-    }
-
-    private void IncreaseGameField()
-    {
-        // increases the Game field by the constant number FieldIncrease
-        _nodeCount += FieldIncrease;
-        for (int i = 0; i < FieldIncrease; i++)
-        {
-            AddFieldNode();
-        }
-
-        _last!.Number = _nodeCount; // corrects the number of the last node
-
-        DeleteInfiniteLoops();
-    }
-
-    private void MovePlayer(Player player, int num)
-    {
-        // Moves the player by num nodes
-        for (int i = 0; i < num; i++)
-        {
-            player.Position = player.Position!.Next;
-
-            if (player.Position == _last) // checks if the player lands on the last node
-            {
-                // checks if the dice roll was perfect
-                if (i == num - 1) // roll was perfect
-                {
-                    player.Winner = true;
-                    return;
-                }
-
-                // roll was not perfect and gets set to the node he started, but he can trigger Snake and Ladder events on that node
-                Console.WriteLine(
-                    "You have to land on the last node with a perfect dice roll! You land on the node where you started.");
-                Console.ReadKey();
-                MovePlayerBackward(player, i + 1);
-                return;
-            }
-        }
-    }
-
     private static int RollDice()
     {
         // rolls the dice for a random number between 1 and 6
         return Random.Next(1, 7);
     }
 
-    private void DeleteInfiniteLoops()
+    private static bool StopGame(ConsoleKeyInfo keyInfo)
     {
-        // Deletes infinite loops between a ladder and a snake
-        FieldNode currentNode = _first ?? throw new ArgumentException("_first is null, something went wrong");
+        // stops the game if the player entered "Q" 
+        if (keyInfo.Key != ConsoleKey.Q)
+            return false;
 
-        while (currentNode != _last!.Prev!.Prev!.Prev) // iterates through every FieldNode until the 4th last
-        {
-            currentNode = currentNode.Next!;
+        Console.ForegroundColor = ConsoleColor.DarkRed;
+        Console.WriteLine("\nstopping...");
+        Console.ResetColor();
 
-            if (currentNode.Ladder)
-            {
-                FieldNode nextFieldNode = currentNode;
-
-                for (int i = 0; i < 3; i++) // moves 3 FieldNodes ahead
-                    nextFieldNode = nextFieldNode.Next ??
-                                    throw new ArgumentException("Calculation with DeleteLoops went wrong");
-
-                nextFieldNode.Snake = false; // deletes the snake on this FieldNode 
-            }
-        }
+        return true;
     }
 }
